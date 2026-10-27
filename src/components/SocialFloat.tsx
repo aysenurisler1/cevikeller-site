@@ -7,7 +7,7 @@ const WHATSAPP_MESSAGE = encodeURIComponent(
 
 export default function SocialFloat() {
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-center gap-3">
+    <div className="fixed bottom-5 left-5 z-50 flex flex-col items-center gap-3">
       <a href={`https://www.instagram.com/${contact.instagramUsername}/`}
         target="_blank"
         rel="noopener noreferrer"

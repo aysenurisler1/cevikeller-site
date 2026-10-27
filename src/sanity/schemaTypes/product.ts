@@ -11,14 +11,26 @@ const CATEGORY_OPTIONS = [
   { title: "Havuz Ekipmanları", value: "havuz-ekipmanlari" },
 ];
 
+// Teklif asistanındaki kartlar. Bir role atanan ürünün fotoğrafı,
+// asistanda o karttaki ikonun yerine gösterilir.
 const WIZARD_ROLE_OPTIONS = [
   { title: "Sihirbazda kullanılmıyor", value: "none" },
   { title: "Filtre", value: "filtre" },
+  { title: "Kuvars kum", value: "kum" },
   { title: "Pompa", value: "pompa" },
-  { title: "Tuzlu Sistem", value: "tuz" },
-  { title: "Temizleme Robotu", value: "robot" },
-  { title: "Aydınlatma", value: "aydinlatma" },
-  { title: "Kimyasal Paket", value: "kimyasal" },
+  { title: "Pompa sehpası", value: "sehpa" },
+  { title: "Taşma ızgarası", value: "izgara" },
+  { title: "Skimmer", value: "skimmer" },
+  { title: "Merdiven", value: "merdiven" },
+  { title: "Şelale", value: "selale" },
+  { title: "Elektrik panosu", value: "pano" },
+  { title: "Makine dairesi kapağı", value: "kapak" },
+  { title: "Gömme lamba", value: "lamba-gomme" },
+  { title: "Sıva üstü lamba", value: "lamba-siva" },
+  { title: "Trafo", value: "trafo" },
+  { title: "Robot", value: "robot" },
+  { title: "Tuz klor cihazı", value: "tuz" },
+  { title: "Tesisat seti", value: "tesisat" },
 ];
 
 export const productType = defineType({
@@ -59,6 +71,54 @@ export const productType = defineType({
       options: { hotspot: true },
     }),
     defineField({
+      name: "options",
+      title: "Çeşitler",
+      description: "Ürün detay sayfasında fotoğraflı olarak listelenir (ör. fırça, kepçe, süpürge başlığı).",
+      type: "array",
+      of: [
+        {
+          type: "object",
+          name: "productOption",
+          title: "Çeşit",
+          fields: [
+            defineField({
+              name: "name",
+              title: "Çeşit Adı",
+              type: "string",
+              validation: (rule) => rule.required(),
+            }),
+            defineField({
+              name: "group",
+              title: "Grup",
+              description:
+                "Detay sayfasında bu başlık altında gösterilir (ör. Süpürgeler, Fırçalar). Aynı gruptakilere birebir aynı adı yaz.",
+              type: "string",
+            }),
+            defineField({
+              name: "image",
+              title: "Fotoğraf",
+              type: "image",
+              options: { hotspot: true },
+            }),
+            defineField({
+              name: "description",
+              title: "Kısa Açıklama",
+              type: "text",
+              rows: 2,
+            }),
+            defineField({
+              name: "code",
+              title: "Ürün Kodu (opsiyonel)",
+              type: "string",
+            }),
+          ],
+          preview: {
+            select: { title: "name", subtitle: "group", media: "image" },
+          },
+        },
+      ],
+    }),
+    defineField({
       name: "variants",
       title: "Varyantlar (ör. ölçü, hacim)",
       type: "array",
@@ -81,31 +141,13 @@ export const productType = defineType({
       type: "boolean",
       initialValue: true,
     }),
-
-        defineField({
+    defineField({
       name: "wizardRole",
-      title: "Sihirbazdaki Rolü",
+      title: "Teklif Asistanındaki Rolü",
+      description: "Seçilirse bu ürünün fotoğrafı teklif asistanında ilgili kartta gösterilir.",
       type: "string",
       options: { list: WIZARD_ROLE_OPTIONS, layout: "dropdown" },
       initialValue: "none",
-    }),
-    defineField({
-      name: "flowRate",
-      title: "Debi (m³/saat)",
-      description: "Filtre için maksimum debi, pompa için sağladığı debi.",
-      type: "number",
-      validation: (rule) => rule.min(0),
-      hidden: ({ document }) =>
-        !["filtre", "pompa"].includes(document?.wizardRole as string),
-    }),
-    defineField({
-      name: "maxVolume",
-      title: "Maksimum Havuz Hacmi (m³)",
-      description: "Bu ürünün uygun olduğu en büyük havuz hacmi.",
-      type: "number",
-      validation: (rule) => rule.min(0),
-      hidden: ({ document }) =>
-        !["tuz", "robot"].includes(document?.wizardRole as string),
     }),
   ],
   preview: {

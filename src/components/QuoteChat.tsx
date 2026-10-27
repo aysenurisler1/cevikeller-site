@@ -2,39 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FaComments, FaMinus, FaRedo } from "react-icons/fa";
+import PoolVisual from "@/components/PoolVisual";
+import SelectionCards from "@/components/SelectionCards";
 
-type Step = {
-  key: string;
-  question: string;
-  kind: "choice" | "number";
-  options?: { label: string; value: string }[];
-  unit?: string;
-  min?: number;
-  max?: number;
-};
-
-const STEPS: Step[] = [
-  {
-    key: "poolType",
-    question: "Havuzunuz ne amaçla kullanılacak?",
-    kind: "choice",
-    options: [
-      { label: "Özel / Villa havuzu", value: "ozel" },
-      { label: "Otel / Ticari havuz", value: "ticari" },
-    ],
-  },
-  { key: "length", question: "Havuzunuzun uzunluğu kaç metre?", kind: "number", unit: "m", min: 1, max: 50 },
-  { key: "width", question: "Genişliği kaç metre?", kind: "number", unit: "m", min: 1, max: 25 },
-  { key: "shallowDepth", question: "En sığ noktasının derinliği kaç metre?", kind: "number", unit: "m", min: 0.3, max: 3 },
-  { key: "deepDepth", question: "En derin noktasının derinliği kaç metre?", kind: "number", unit: "m", min: 0.3, max: 5 },
-];
-
-function formatAnswer(step: Step, value: string | number) {
-  if (step.kind === "choice") {
-    return step.options?.find((o) => o.value === value)?.label ?? String(value);
-  }
-  return `${String(value).replace(".", ",")} ${step.unit ?? ""}`;
-}
+import type { WizardImage } from "@/sanity/queries";
+import {
+  type Answers,
+  buildMaterialList,
+  fmt,
+  formatAnswer,
+  getFilterSize,
+  getSteps,
+  getVolume,
+} from "@/lib/quoteFlow";
 
 function AssistantBubble({ children }: { children: React.ReactNode }) {
   return (
@@ -52,16 +32,16 @@ function UserBubble({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function QuoteChat() {
-  const [open, setOpen] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, string | number>>({});
+export default function QuoteChat({ images = {} }: { images?: Record<string, WizardImage> }) {  const [open, setOpen] = useState(false);
+  const [answers, setAnswers] = useState<Answers>({});
   const [stepIndex, setStepIndex] = useState(0);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const current = STEPS[stepIndex];
-  const done = stepIndex >= STEPS.length;
+  const steps = getSteps(answers);
+  const current = steps[stepIndex];
+  const done = stepIndex >= steps.length;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,15 +77,34 @@ export default function QuoteChat() {
     setError("");
   }
 
-  const volume = done
-    ? (Number(answers.length) * Number(answers.width) *
-        (Number(answers.shallowDepth) + Number(answers.deepDepth))) / 2
-    : 0;
+  const volume = getVolume(answers);
+  const hasFilter = getFilterSize(answers) !== undefined;
+  const materialList = buildMaterialList(answers);
+
+  const listGroups = [
+    { title: "Ekipmanlar", items: materialList.filter((i) => !i.group) },
+    { title: "Tesisat", items: materialList.filter((i) => i.group === "tesisat") },
+    { title: "Aydınlatma", items: materialList.filter((i) => i.group === "aydinlatma") },
+        { title: "Ek ürünler", items: materialList.filter((i) => i.group === "ekstra") },
+  ].filter((g) => g.items.length > 0);
 
   return (
     <>
+           {open && (
+        <div className="fixed top-24 left-24 bottom-24 right-[420px] z-40 hidden flex-col gap-4 rounded-2xl border border-line bg-white/85 p-6 shadow-2xl backdrop-blur-sm lg:flex">
+          <div className="min-h-0 flex-1">
+            <PoolVisual
+              length={answers.length !== undefined ? Number(answers.length) : undefined}
+              width={answers.width !== undefined ? Number(answers.width) : undefined}
+              shallowDepth={answers.shallowDepth !== undefined ? Number(answers.shallowDepth) : undefined}
+              deepDepth={answers.deepDepth !== undefined ? Number(answers.deepDepth) : undefined}
+            />
+          </div>
+          <SelectionCards items={materialList} images={images} />        </div>
+      )}
+
       {open && (
-        <div className="fixed bottom-24 left-5 z-50 flex h-[560px] max-h-[calc(100vh-8rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-2xl">
+        <div className="fixed bottom-24 right-5 z-50 flex h-[560px] max-h-[calc(100vh-8rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-2xl">
           <div className="flex items-center justify-between bg-navy-deep px-5 py-4 text-white">
             <div>
               <p className="font-display text-base font-bold">Teklif Asistanı</p>
@@ -137,7 +136,7 @@ export default function QuoteChat() {
               birkaç soruyla belirleyelim.
             </AssistantBubble>
 
-            {STEPS.slice(0, stepIndex).map((step) => (
+            {steps.slice(0, stepIndex).map((step) => (
               <div key={step.key} className="space-y-3">
                 <AssistantBubble>{step.question}</AssistantBubble>
                 <UserBubble>{formatAnswer(step, answers[step.key])}</UserBubble>
@@ -146,13 +145,41 @@ export default function QuoteChat() {
 
             {!done && <AssistantBubble>{current.question}</AssistantBubble>}
 
-            {done && (
+            {done && volume !== null && (
               <AssistantBubble>
-                Havuzunuzun yaklaşık hacmi{" "}
-                <strong>
-                  {volume.toLocaleString("tr-TR", { maximumFractionDigits: 1 })} m³
-                </strong>
-                . Malzeme önerileri bir sonraki adımda burada olacak.
+                {!hasFilter ? (
+                  <>
+                    Havuzunuzun yaklaşık hacmi <strong>{fmt(volume)} m³</strong>. Bu
+                    büyüklükteki havuzlar için lütfen ekibimizle görüşün.
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2 font-bold text-navy">Malzeme listeniz</p>
+                    {listGroups.map((g) => (
+                      <div key={g.title} className="mt-3 first:mt-0">
+                        <p className="text-xs font-bold uppercase tracking-wide text-ink/50">
+                          {g.title}
+                        </p>
+                        <ul className="divide-y divide-line">
+                          {g.items.map((item) => (
+                            <li key={item.name} className="flex justify-between gap-3 py-1.5">
+                              <span>
+                                {item.name}
+                                {item.note && (
+                                  <span className="block text-xs text-ink/60">{item.note}</span>
+                                )}
+                              </span>
+                              <span className="shrink-0 text-right font-medium text-navy">
+                                {item.quantity}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                    <p className="mt-2 text-ink/60">Sıradaki adımlar yakında burada olacak.</p>
+                  </>
+                )}
               </AssistantBubble>
             )}
 
@@ -161,12 +188,14 @@ export default function QuoteChat() {
 
           <div className="border-t border-line p-4">
             {!done && current.kind === "choice" && (
-              <div className="flex flex-col gap-2">
-                {current.options?.map((option) => (
+              <div className={current.options && current.options.length > 4 ? "grid grid-cols-3 gap-2" : "flex flex-col gap-2"}>                {current.options?.map((option) => (
                   <button type="button" key={option.value} onClick={() => saveAnswer(option.value)}
-                    className="rounded-xl border border-line px-4 py-2.5 text-left text-sm text-navy transition-colors hover:border-navy hover:bg-navy hover:text-white"
+                    className="rounded-xl border border-line px-4 py-2 text-left text-sm text-navy transition-colors hover:border-navy hover:bg-navy hover:text-white"
                   >
-                    {option.label}
+                    <span className="block">{option.label}</span>
+                    {option.hint && (
+                      <span className="mt-0.5 block text-xs opacity-70">{option.hint}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -179,8 +208,7 @@ export default function QuoteChat() {
                     <input type="text" inputMode="decimal" value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && submitNumber()}
-                      placeholder="Örn. 8 veya 1,5"
-                      className="w-full rounded-xl border border-line px-4 py-2.5 pr-10 text-sm text-ink outline-none focus:border-navy"
+                      placeholder={current.placeholder ?? "Örn. 8 veya 1,5"}                      className="w-full rounded-xl border border-line px-4 py-2.5 pr-10 text-sm text-ink outline-none focus:border-navy"
                     />
                     <span className="absolute top-1/2 right-4 -translate-y-1/2 text-sm text-ink/50">
                       {current.unit}
@@ -209,7 +237,7 @@ export default function QuoteChat() {
 
       <button type="button" onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Teklif asistanını gizle" : "Teklif asistanını aç"}
-        className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-full bg-sun px-5 py-3.5 font-display text-sm font-bold text-white shadow-lg transition-transform hover:scale-105"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-sun px-5 py-3.5 font-display text-sm font-bold text-white shadow-lg transition-transform hover:scale-105"
       >
         <FaComments className="h-5 w-5" />
         {open ? "Asistanı Gizle" : "Teklif Asistanı"}

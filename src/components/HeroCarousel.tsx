@@ -1,33 +1,55 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
-// Gerçek ürün/havuz fotoğrafları gelince her slide'a kendi `image` alanını
-// ekleyip aşağıdaki arka plan görselini o slide'a özel olarak değiştirebilirsin.
+// Fotoğraflar public/ klasöründe. Slayt eklemek ya da değiştirmek için bu listeyi düzenle.
 const SLIDES = [
+  {
+    eyebrow: "Atlaspool Ege Bölge Bayisi",
+    title: "Havuzunuz İçin Tüm Ekipmanlar Tek Adreste",
+    description: "Filtreden pompaya, aydınlatmadan tesisata kadar ihtiyacınız olan her şey.",
+    image: "/hero-sonsuzluk-havuzu.webp",
+    cta: { label: "Ürünlerimizi İnceleyin", href: "/urunler" },
+  },
   {
     eyebrow: "Sezon Fırsatı",
     title: "Havuz Ekipmanlarında Toptan Fiyat Avantajı",
     description: "200'ü aşkın firmaya sunduğumuz aynı kaliteyi sizin işletmenize de taşıyoruz.",
-        image: "/havuz-arkaplan.jpeg",
-
+    image: "/hero-hamak-havuz.webp",
+    cta: { label: "Ürünlerimizi İnceleyin", href: "/urunler" },
   },
   {
     eyebrow: "Kendi İmalatımız",
     title: "Havuz Izgaraları ve Köşe Parçaları",
     description: "Dayanıklı, kaymaz, standart ölçülerde — stoktan hızlı teslim.",
-        image: "/havuz-arkaplan-2.avif",
-
+    image: "/hero-merdiven-2.webp",
+    cta: { label: "Izgaraları İnceleyin", href: "/urunler/havuz-izgara-malzemeleri" },
+  },
+  {
+    eyebrow: "Paslanmaz Çelik",
+    title: "Havuz Merdivenleri",
+    description: "AISI 304 ve 316 paslanmaz çelik, 2–5 basamaklı standart ve muro seriler.",
+    image: "/hero-merdiven-1.webp",
+    cta: { label: "Merdivenleri İnceleyin", href: "/urunler/havuz-merdiveni" },
   },
   {
     eyebrow: "Atlaspool Ege Bölge Bayisi",
     title: "LED Havuz Aydınlatma Çözümleri",
     description: "Sıva altı ve sıva üstü seçenekleriyle, projenize uygun aydınlatma.",
-        image: "/havuz-arkaplan-3.avif",
-
+    image: "/hero-villa-gunbatimi.webp",
+    cta: { label: "Aydınlatmayı İnceleyin", href: "/urunler#havuz-aydinlatma" },
+  },
+  {
+    eyebrow: "Berrak Su İçin",
+    title: "Havuz Kimyasalları",
+    description: "Klor, pH düzenleyici ve bakım kimyasallarıyla suyunuz her zaman berrak.",
+    image: "/hero-su-ustten.webp",
+    cta: { label: "Kimyasalları İnceleyin", href: "/urunler#havuz-kimyasallari" },
   },
 ];
+
+const INTERVAL_MS = 6000;
 
 export default function HeroCarousel() {
   const [index, setIndex] = useState(0);
@@ -40,22 +62,28 @@ export default function HeroCarousel() {
     setIndex((i) => (i - 1 + SLIDES.length) % SLIDES.length);
   };
 
+  // Her slayt değişiminde sayaç baştan başlar; elle geçince hemen tekrar kaymaz.
   useEffect(() => {
-    const timer = setInterval(next, 5500);
-    return () => clearInterval(timer);
-  }, [next]);
+    const timer = setTimeout(next, INTERVAL_MS);
+    return () => clearTimeout(timer);
+  }, [index, next]);
 
   const slide = SLIDES[index];
 
   return (
-    <section
-      className="relative flex min-h-[calc(100svh-6rem)] items-center overflow-hidden"
-      style={{
-        backgroundImage: `url(${slide.image})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+    <section className="relative flex min-h-[calc(100svh-6rem)] items-center overflow-hidden bg-navy-deep">
+      {/* Tüm arka planlar üst üste; sadece aktif olan görünür (yumuşak geçiş) */}
+      {SLIDES.map((s, i) => (
+        <div
+          key={s.image}
+          aria-hidden="true"
+          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
+            i === index ? "opacity-100" : "opacity-0"
+          }`}
+          style={{ backgroundImage: `url(${s.image})` }}
+        />
+      ))}
+
       {/* Metnin okunurluğu için koyu degrade katman */}
       <div className="absolute inset-0 bg-gradient-to-t from-navy-deep/80 via-navy-deep/40 to-navy-deep/10" />
 
@@ -71,26 +99,22 @@ export default function HeroCarousel() {
 
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
-              href="/urunler"
+              href={slide.cta.href}
               className="rounded-full bg-sun px-7 py-3 font-display text-sm uppercase tracking-wide text-navy-deep shadow-lg shadow-sun/30 transition hover:-translate-y-0.5 hover:shadow-xl"
             >
-              Ürünlerimizi İnceleyin
+              {slide.cta.label}
             </Link>
           </div>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={prev}
+      <button type="button" onClick={prev}
         aria-label="Önceki"
         className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-navy shadow-md transition hover:bg-white sm:left-8"
       >
         ‹
       </button>
-      <button
-        type="button"
-        onClick={next}
+      <button type="button" onClick={next}
         aria-label="Sonraki"
         className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-navy shadow-md transition hover:bg-white sm:right-8"
       >
@@ -99,10 +123,7 @@ export default function HeroCarousel() {
 
       <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2">
         {SLIDES.map((s, i) => (
-          <button
-            key={s.title}
-            type="button"
-            onClick={() => setIndex(i)}
+          <button type="button" key={s.image} onClick={() => setIndex(i)}
             aria-label={`${i + 1}. görsele git`}
             className={`h-2 rounded-full transition-all ${
               i === index ? "w-6 bg-sun" : "w-2 bg-white/50"

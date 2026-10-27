@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { productCategories } from "@/data/content";
 import { ICONS_BY_SLUG } from "@/components/ProductIcon";
 import { getProducts } from "@/sanity/queries";
@@ -49,7 +50,8 @@ export default async function UrunlerPage() {
           const catProducts = products.filter((p) => p.categorySlug === cat.slug);
 
           return (
-<section key={cat.slug} id={cat.slug} className="mb-16 scroll-mt-24">              <div className="flex items-center gap-4">
+            <section key={cat.slug} id={cat.slug} className="mb-16 scroll-mt-24">
+              <div className="flex items-center gap-4">
                 <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-aqua/25 text-teal-deep">
                   {Icon && <Icon className="h-6 w-6" />}
                 </span>
@@ -62,20 +64,20 @@ export default async function UrunlerPage() {
               {catProducts.length > 0 ? (
                 <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {catProducts.map((p) => (
-                    <div
-                      key={p._id}
-                      className="card-lift overflow-hidden rounded-2xl border border-line bg-white"
+                    <Link key={p._id} href={`/urunler/${p.slug}`}
+                      className="card-lift group block overflow-hidden rounded-2xl border border-line bg-white"
                     >
-                      <div className="relative h-44 w-full bg-surface">
+                      <div className="relative h-52 w-full bg-white">
                         {p.image ? (
                           <Image
-                            src={urlForImage(p.image).width(600).height(450).fit("crop").url()}
+                            src={urlForImage(p.image).width(800).fit("max").url()}
                             alt={p.name}
                             fill
-                            className="object-cover"
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                            className="object-contain p-4"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center text-sm text-ink/40">
+                          <div className="flex h-full items-center justify-center bg-surface text-sm text-ink/40">
                             Fotoğraf yok
                           </div>
                         )}
@@ -103,8 +105,11 @@ export default async function UrunlerPage() {
                         {p.inStock === false && (
                           <p className="mt-2 text-xs font-medium text-red-500">Stokta yok</p>
                         )}
+                        <p className="mt-4 text-sm font-medium text-teal-deep group-hover:underline">
+                          İncele →
+                        </p>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (
